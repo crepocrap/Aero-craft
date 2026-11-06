@@ -1,0 +1,35 @@
+name: Auto Unzip Upload
+
+on:
+  push:
+    paths:
+      - '**.zip'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract zip and clean up
+        run: |
+          filename=$(basename -s .zip *.zip)
+          unzip -o "$filename.zip" -d .
+          rm -f *.zip
+          if [ -d "$filename" ]; then
+            shopt -s dotglob
+            mv "$filename"/* .
+            rmdir "$filename"
+          fi
+
+      - name: Commit extracted files
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "github-actions"
+          git add -A
+          git commit -m "Auto-extract uploaded zip" || echo "nothing to commit"
+          git push
